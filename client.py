@@ -1,11 +1,20 @@
-import game_ai_client
+import game_ai_client as aic
 import json
 import utils.room_manager
+import utils.game_as.chess as chess_as
 
 
-def on_message(message):
-    message_json = json.loads(message)
-    print("Message: {}".format(json.loads(message)))
+def on_message(msg):
+    msg_json = json.loads(msg)
+    print(msg_json[aic.GameAIClient.METHOD])
+
+    if msg_json[aic.GameAIClient.METHOD] == aic.GameAIClient.METHOD_ERROR:
+        print(msg)
+
+    if msg_json[aic.GameAIClient.METHOD] == aic.GameAIClient.METHOD_ROOM_UPDATE:
+        assistant = chess_as.ChessAssistant(msg_json["data"]["game"])
+        print(assistant.get_position("a3"))
+    #print("Message: {}".format(json.loads(message)))
 
 
 def exit_handler():
@@ -14,11 +23,12 @@ def exit_handler():
 
 if __name__ == "__main__":
     print("API Client 1.0")
-    client = game_ai_client.GameAIClient(on_message)
-    client.connect("wss://vg-development.de:8900/game")
-    client.login("Hans")
+    client = aic.GameAIClient(on_message)
+    client.connect("ws://localhost:8900/game")
+    client.login("Peter")
     client.room_all()
-    client.room_join("BotRoom", "bot")
+    client.room_add("BotRoom")
+    #client.disconnect()
     while True:
         pass
 

@@ -86,6 +86,7 @@ class ChessPiece:
     out = False
     move_count = 0
 
+
     def __init__(self, json_piece):
         self.color = json_piece["color"]
         self.x = json_piece["x"]
