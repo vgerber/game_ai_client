@@ -1,5 +1,5 @@
 import json
-
+import utils.game as games
 
 class User:
     name = ""
@@ -13,6 +13,9 @@ class User:
 
 
 class Room:
+    GAME_GO = "go"
+    GAME_CHESS = "chess"
+
     name = ""
     password = False
     deadline = None
@@ -29,6 +32,11 @@ class Room:
         self.users = []
         for user_json in room_json["users"]:
             self.users.append(User(user_json))
+
+        if room_json["game"]["name"] == games.GAME_CHESS:
+            self.game = games.Chess(room_json["game"])
+        else:
+            self.game = games.Go(room_json["game"])
 
 
 class Deadline:

@@ -4,6 +4,7 @@ import ssl
 import json
 import threading
 import time
+import atexit
 
 
 class GameAIClient:
@@ -38,9 +39,11 @@ class GameAIClient:
     CMD_SURRENDER = "surrender"
     CMD_RESTART = "restart"
 
-
     ws = None
     wst = None
+    ping_interval = None
+
+    ping_timer_duration = 25
 
     connected = False
 
@@ -48,7 +51,7 @@ class GameAIClient:
         self.on_message = on_message
 
     def connect(self, url):
-
+        atexit.register(self.disconnect)
         self.ws = websocket.WebSocketApp(url=url)
         self.ws.on_open = self.on_open
         self.ws.on_error = self.on_error
@@ -56,9 +59,15 @@ class GameAIClient:
         self.wst = threading.Thread(target=self.ws.run_forever, kwargs={"sslopt": {"cert_reqs": ssl.CERT_NONE}})
         self.wst.daemon = True
         self.wst.start()
-        time.sleep(1)
+
+        while not self.connected:
+            pass
+        self.ping_interval = threading.Thread(target=self.ping_timer)
+        self.ping_interval.daemon = True
+        self.ping_interval.start()
 
     def disconnect(self):
+        print("Disconnect")
         self.ws.close()
         self.connected = False
 
@@ -66,13 +75,24 @@ class GameAIClient:
         self.ws.send(message)
 
     def listen(self, ws, message):
-        self.on_message(message)
+        if message == "pong":
+            pass
+        else:
+            self.on_message(message)
 
     def on_error(self, ws, error):
         print("Error {}".format(error))
 
     def on_open(self, ws):
         self.connected = True
+
+    def ping(self):
+        self.send("ping")
+
+    def ping_timer(self):
+        while self.connected:
+            self.ping()
+            time.sleep(self.ping_timer_duration)
 
     def login(self, name):
         msg = dict()

@@ -4,6 +4,9 @@ COLOR_EMPTY = -1
 COLOR_WHITE = 0
 COLOR_BLACK = 1
 
+GAME_CHESS = "chess"
+GAME_GO = "go"
+
 
 class GoPiece:
     color = COLOR_EMPTY
@@ -14,6 +17,9 @@ class GoPiece:
         self.color = json_go_piece["color"]
         self.x = json_go_piece["x"]
         self.y = json_go_piece["y"]
+
+    def __str__(self):
+        return self.color
 
 
 class GoStatePlayer:
@@ -86,7 +92,6 @@ class ChessPiece:
     out = False
     move_count = 0
 
-
     def __init__(self, json_piece):
         self.color = json_piece["color"]
         self.x = json_piece["x"]
@@ -94,6 +99,12 @@ class ChessPiece:
         self.type = json_piece["type"]
         self.out = json_piece["out"]
         self.move_count = json_piece["move_count"]
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return str(self.type)
 
 
 class ChessState:
@@ -125,16 +136,17 @@ class Chess:
     pieces = []
     state = None
 
-    def __init__(self, json_go):
-        self.name = json_go["name"]
-        self.count = json_go["count"]
-        self.turn = json_go["turn"]
-        self.width = json_go["width"]
-        self.height = json_go["height"]
-        self.last_move = json_go["last_move"]
+    def __init__(self, json_chess):
+        self.name = json_chess["name"]
+        self.count = json_chess["count"]
+        self.turn = json_chess["turn"]
+        self.width = json_chess["width"]
+        self.height = json_chess["height"]
+        self.last_move = json_chess["last_move"]
 
         self.pieces = []
-        for piece in json_go["pieces"]:
+        for piece in json_chess["pieces"]:
             self.pieces.append(ChessPiece(piece))
 
-        self.state = ChessState(json_go["state"])
+        self.state = ChessState(json_chess["state"])
+
