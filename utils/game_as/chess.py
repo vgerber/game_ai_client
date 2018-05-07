@@ -20,6 +20,7 @@ def get_field(chess):
 
 def move(field, piece, target_move, promotion_type=None):
     new_field = field
+    print(validate_piece(new_field, piece, target_move))
     if validate_piece(field, piece, target_move):
         new_field[piece.x][piece.y] = None
         piece_target = field[target_move[0]][target_move[1]]
@@ -50,12 +51,15 @@ def get_valid_moves(field, color):
     for x in range(8):
         for y in range(8):
             piece = field[x][y]
-            if piece.color == color:
+            print(piece)
+            if piece.color == color and piece.type == game.ChessPiece.PAWN:
                 for move_x in range(8):
                     for move_y in range(8):
+                        print((move_x, move_y))
                         state = move(field, piece, (move_x, move_y))
                         if state is not None:
-                            moves.append(state)
+                            moves.append(((move_x, move_y), state))
+    return moves
 
 
 def get_piece(field, x=None, y=None, pos=None):
@@ -99,6 +103,7 @@ def validate_piece(field, piece, target_move):
 
 
 def validate_pawn(field, piece, target_move):
+    print("VALIDATE PAWN")
     if is_nop(piece, target_move):
         return False
     if not is_move_in_bounds(target_move):
@@ -108,11 +113,14 @@ def validate_pawn(field, piece, target_move):
     dy = abs(piece.y - target_move[1])
     direction = get_direction(piece, target_move)
 
+    print(dx, dy, direction)
+
     if dx == 0:
         if dy == 1 or (dy == 2 and piece.move_count == 0):
             return is_move_blocked(field, piece, target_move, direction) == MOVE_FREE
     if dx == 1 and dy == 1:
         return is_move_blocked(field, piece, target_move, direction) == MOVE_BLOCKED_ON_TARGET
+
     return False
 
 
@@ -199,10 +207,14 @@ def get_direction(piece, target_move):
 
     if dx > 0:
         direction["x"] = 1
+    elif dx == 0:
+        direction["x"] = 0
     else:
         direction["x"] = -1
     if dy > 0:
         direction["y"] = 1
+    elif dy == 0:
+        direction["y"] = 0
     else:
         direction["y"] = -1
 
@@ -210,14 +222,15 @@ def get_direction(piece, target_move):
 
 
 def is_move_blocked(field, piece, target_move, direction, test_check=False):
+    print("Piece Move {} {}".format(piece.x, piece.y))
     if piece.x == target_move[0] and piece.y == target_move[1]:
         field_piece = field[piece.x, piece.y]
-        #test if field is blocked by piece
+        # test if field is blocked by piece
         if field_piece is not None:
-            #move is free if testing for check
+            # move is free if testing for check
             if test_check and field_piece.type == game.ChessPiece.KING:
                 return MOVE_FREE
-            #return blocked by ally when both pieces have the same color
+            # return blocked by ally when both pieces have the same color
             if piece.color == field_piece.color:
                 return MOVE_BLOCKED_ON_PATH
             return MOVE_BLOCKED_ON_TARGET
@@ -281,8 +294,50 @@ def is_check_mate(field, color):
                 break
 
     if king is not None:
-        #check possible king moves
-        pass
+        # check if king can move
+        for x in range(-1, 2):
+            for y in range(-1, 2):
+                if move(field, king, (king.x + x, king.y + y)) is not None:
+                    return False
 
+        for x in range(8):
+            for y in range(8):
+                piece = field[x][y]
+                if piece.color == color:
+                    for move_x in range(8):
+                        for move_y in range(8):
+                            state = move(field, piece, (move_x, move_y))
+                            if state is not None:
+                                return False
+        return True
+    return False
+
+
+def is_stale_mate(field, color):
+    if not is_check(field, color):
+        king = None
+        for x in range(8):
+            for y in range(8):
+                piece = field[x][y]
+                if piece.color == color and piece.type == game.ChessPiece.KING:
+                    king = piece
+                    break
+        # test if king can move
+        for x in range(-1, 2):
+            for y in range(-1, 2):
+                if move(field, king, (king.x + x, king.y + y)) is not None:
+                    return False
+        # test if any piece from own color can move
+        for x in range(8):
+            for y in range(8):
+                piece = field[x][y]
+                if piece.color == color and piece.type != game.ChessPiece.KING:
+                    for move_x in range(8):
+                        for move_y in range(8):
+                            state = move(field, piece, (move_x, move_y))
+                            if state is not None:
+                                return False
+
+        return True
     return False
 

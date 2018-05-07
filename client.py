@@ -11,10 +11,15 @@ def on_message(msg):
 
     msg_json = json.loads(msg)
 
+    print(msg_json[aic.GameAIClient.METHOD])
     if msg_json[aic.GameAIClient.METHOD] == aic.GameAIClient.METHOD_ROOM_ADD:
         room = room_manager.Room(msg_json["data"])
         field = chess_as.get_field(room.game)
-        print(field[1])
+        # print(field[1])
+
+        moves = chess_as.get_valid_moves(field, room.game.turn)
+        print(len(moves))
+        print(room)
 
 
 if __name__ == "__main__":
