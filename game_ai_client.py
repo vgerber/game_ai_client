@@ -5,6 +5,7 @@ import json
 import threading
 import time
 import atexit
+import utils.room_manager as rm
 
 
 class GameAIClient:
@@ -49,6 +50,7 @@ class GameAIClient:
 
     def __init__(self, on_message):
         self.on_message = on_message
+        self.user = None
 
     def connect(self, url):
         atexit.register(self.disconnect)
@@ -78,7 +80,17 @@ class GameAIClient:
         if message == "pong":
             pass
         else:
-            self.on_message(message)
+            msg_json = json.loads(message)
+            method = msg_json[self.METHOD]
+            if method == self.METHOD_AUTH_GUEST:
+                self.user = rm.User(msg_json["data"])
+            if method == self.METHOD_ROOM_UPDATE:
+                room = rm.Room(msg_json["data"])
+                for user in room.users:
+                    if user.name == self.user.name:
+                        self.user = user
+                        break
+            self.on_message(self, message)
 
     def on_error(self, ws, error):
         print("Error {}".format(error))

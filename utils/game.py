@@ -9,9 +9,9 @@ GAME_GO = "go"
 
 
 class GoPiece:
-    color = COLOR_EMPTY
+    """color = COLOR_EMPTY
     x = 0
-    y = 0
+    y = 0"""
 
     def __init__(self, json_go_piece):
         self.color = json_go_piece["color"]
@@ -23,9 +23,9 @@ class GoPiece:
 
 
 class GoStatePlayer:
-    pass_turn = False
+    """pass_turn = False
     captured = 0
-    score = 0
+    score = 0"""
 
     def __init__(self, json_player_state):
         self.pass_turn = json_player_state["pass"]
@@ -40,9 +40,9 @@ class GoState:
     STATE_BLACK_WON = 21
     STATE_JIGO = 3
 
-    game_state = 0
+    """game_state = 0
     black = None
-    white = None
+    white = None"""
 
     def __init__(self, json_state):
         self.game_state = json_state["game_state"]
@@ -53,14 +53,14 @@ class GoState:
 class Go:
     CMD_PASS = "pass"
 
-    name = ""
+    """name = ""
     count = 0
     turn = COLOR_EMPTY
     width = 0
     height = 0
     last_move = ""
     pieces = []
-    state = None
+    state = None"""
 
     def __init__(self, json_go):
         self.name = json_go["name"]
@@ -85,12 +85,12 @@ class ChessPiece:
     QUEEN = 5
     KING = 6
 
-    color = COLOR_EMPTY
+    """color = COLOR_EMPTY
     x = 0
     y = 0
     type = PAWN
     out = False
-    move_count = 0
+    move_count = 0"""
 
     def __init__(self, json_piece):
         self.color = json_piece["color"]
@@ -106,7 +106,6 @@ class ChessPiece:
     def __str__(self):
         return str(self.type)
 
-
 class ChessState:
     STATE_OK = 1
     STATE_WHITE_WON = 4
@@ -116,9 +115,9 @@ class ChessState:
     PLAYER_OK = 1
     PLAYER_CHECK = 0
 
-    game_state = 0
+    """game_state = 0
     black = 0
-    white = 0
+    white = 0"""
 
     def __init__(self, json_state):
         self.game_state = json_state["game_state"]
@@ -127,14 +126,14 @@ class ChessState:
 
 
 class Chess:
-    name = ""
+    """name = ""
     count = 0
     turn = COLOR_EMPTY
     width = 0
     height = 0
     last_move = ""
     pieces = []
-    state = None
+    state = None"""
 
     def __init__(self, json_chess):
         self.name = json_chess["name"]

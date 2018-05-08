@@ -1,10 +1,8 @@
 import json
 import utils.game as games
 
+
 class User:
-    name = ""
-    ready = False
-    role = ""
 
     def __init__(self, user_json):
         self.name = user_json["name"]
@@ -15,13 +13,6 @@ class User:
 class Room:
     GAME_GO = "go"
     GAME_CHESS = "chess"
-
-    name = ""
-    password = False
-    deadline = None
-    players_ready = False
-    game = None
-    users = []
 
     def __init__(self, room_json):
         self.name = room_json["name"]
@@ -40,8 +31,6 @@ class Room:
 
 
 class Deadline:
-    date = ""
-    duration = 0
 
     def __init__(self, deadline_json):
         self.date = deadline_json["date"]
