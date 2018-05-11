@@ -95,24 +95,24 @@ def get_position(pos_str):
     return pos_x, pos_y
 
 
-def validate_piece(field, piece, target_move):
+def validate_piece(field, piece, target_move, ignore_king=False):
     valid_move = False
     if piece.type == game.ChessPiece.PAWN:
-        valid_move = validate_pawn(field, piece, target_move)
+        valid_move = validate_pawn(field, piece, target_move, ignore_king)
     elif piece.type == game.ChessPiece.ROOK:
-        valid_move = validate_rook(field, piece, target_move)
+        valid_move = validate_rook(field, piece, target_move, ignore_king)
     elif piece.type == game.ChessPiece.KNIGHT:
-        valid_move = validate_knight(field, piece, target_move)
+        valid_move = validate_knight(field, piece, target_move, ignore_king)
     elif piece.type == game.ChessPiece.BISHOP:
-        valid_move = validate_bishop(field, piece, target_move)
+        valid_move = validate_bishop(field, piece, target_move, ignore_king)
     elif piece.type == game.ChessPiece.QUEEN:
-        valid_move = validate_queen(field, piece, target_move)
+        valid_move = validate_queen(field, piece, target_move, ignore_king)
     elif piece.type == game.ChessPiece.KING:
-        valid_move = validate_king(field, piece, target_move)
+        valid_move = validate_king(field, piece, target_move, ignore_king)
     return valid_move
 
 
-def validate_pawn(field, piece, target_move):
+def validate_pawn(field, piece, target_move, ignore_king=False):
     if is_nop(piece, target_move):
         return False
     if not is_move_in_bounds(target_move):
@@ -131,14 +131,14 @@ def validate_pawn(field, piece, target_move):
 
     if dx == 0:
         if dy == 1 or (dy == 2 and piece.move_count == 0):
-            return is_move_blocked(field, piece, target_move, direction) == MOVE_FREE
+            return is_move_blocked(field, piece, target_move, direction, ignore_king) == MOVE_FREE
     if dx == 1 and dy == 1:
-        return is_move_blocked(field, piece, target_move, direction) == MOVE_BLOCKED_ON_TARGET
+        return is_move_blocked(field, piece, target_move, direction, ignore_king) == MOVE_BLOCKED_ON_TARGET
 
     return False
 
 
-def validate_rook(field, piece, target_move):
+def validate_rook(field, piece, target_move, ignore_king=False):
     if is_nop(piece, target_move):
         return False
     if not is_move_in_bounds(target_move):
@@ -146,12 +146,12 @@ def validate_rook(field, piece, target_move):
     direction = get_direction(piece, target_move)
 
     if is_move_linear(piece, target_move):
-        return is_move_blocked(field, piece, target_move, direction) != MOVE_BLOCKED_ON_PATH
+        return is_move_blocked(field, piece, target_move, direction, ignore_king) != MOVE_BLOCKED_ON_PATH
 
     return False
 
 
-def validate_knight(field, piece, target_move):
+def validate_knight(field, piece, target_move, ignore_king=False):
     if is_nop(piece, target_move):
         return False
     if not is_move_in_bounds(target_move):
@@ -159,12 +159,16 @@ def validate_knight(field, piece, target_move):
 
     if is_move_knight_jump(piece, target_move):
         target_piece = field[target_move[0]][target_move[1]]
+
+        if ignore_king and target_piece.type == game.ChessPiece.KING:
+            return True
+
         return (target_piece is None) or (target_piece.color != piece.color)
 
     return False
 
 
-def validate_bishop(field, piece, target_move):
+def validate_bishop(field, piece, target_move, ignore_king=False):
     if is_nop(piece, target_move):
         return False
     if not is_move_in_bounds(target_move):
@@ -172,12 +176,12 @@ def validate_bishop(field, piece, target_move):
     direction = get_direction(piece, target_move)
 
     if is_move_diagonal(piece, target_move):
-        return is_move_blocked(field, piece, target_move, direction) != MOVE_BLOCKED_ON_PATH
+        return is_move_blocked(field, piece, target_move, direction, ignore_king) != MOVE_BLOCKED_ON_PATH
 
     return False
 
 
-def validate_queen(field, piece, target_move):
+def validate_queen(field, piece, target_move, ignore_king=False):
     if is_nop(piece, target_move):
         return False
     if not is_move_in_bounds(target_move):
@@ -185,12 +189,12 @@ def validate_queen(field, piece, target_move):
     direction = get_direction(piece, target_move)
 
     if is_move_diagonal(piece, target_move) or is_move_linear(piece, target_move):
-        return is_move_blocked(field, piece, target_move, direction) != MOVE_BLOCKED_ON_PATH
+        return is_move_blocked(field, piece, target_move, direction, ignore_king) != MOVE_BLOCKED_ON_PATH
 
     return False
 
 
-def validate_king(field, piece, target_move):
+def validate_king(field, piece, target_move, ignore_king=False):
     if is_nop(piece, target_move):
         return False
     if not is_move_in_bounds(target_move):
@@ -200,7 +204,7 @@ def validate_king(field, piece, target_move):
     direction = get_direction(piece, target_move)
 
     if dx <= 1 and dy <= 1:
-        return is_move_blocked(field, piece, target_move, direction) != MOVE_BLOCKED_ON_PATH
+        return is_move_blocked(field, piece, target_move, direction, ignore_king) != MOVE_BLOCKED_ON_PATH
 
     return False
 
@@ -293,7 +297,7 @@ def is_check(field, color):
             for y in range(8):
                 piece = field[x][y]
                 if piece is not None and piece.color != color:
-                    if validate_piece(field, piece, (king.x, king.y)):
+                    if validate_piece(field, piece, (king.x, king.y), ignore_king=True):
                         return True
     return False
 
