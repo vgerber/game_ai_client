@@ -133,7 +133,10 @@ def validate_pawn(field, piece, target_move, ignore_king=False):
         if dy == 1 or (dy == 2 and piece.move_count == 0):
             return is_move_blocked(field, piece, target_move, direction, ignore_king) == MOVE_FREE
     if dx == 1 and dy == 1:
-        return is_move_blocked(field, piece, target_move, direction, ignore_king) == MOVE_BLOCKED_ON_TARGET
+        expected_result = MOVE_BLOCKED_ON_TARGET
+        if ignore_king:
+            expected_result = MOVE_FREE
+        return is_move_blocked(field, piece, target_move, direction, ignore_king) == expected_result
 
     return False
 
@@ -242,26 +245,27 @@ def get_direction(piece, target_move):
 def is_move_blocked(field, piece, target_move, direction, test_check=False):
     field = copy.deepcopy(field)
     piece_cpy = copy.copy(piece)
-    if piece.x == target_move[0] and piece.y == target_move[1]:
-        field_piece = field[piece.x][piece.y]
+
+    piece_cpy.x += direction["x"]
+    piece_cpy.y += direction["y"]
+
+    if piece_cpy.x == target_move[0] and piece_cpy.y == target_move[1]:
+        field_piece = field[piece_cpy.x][piece_cpy.y]
         # test if field is blocked by piece
         if field_piece is not None:
             # move is free if testing for check
             if test_check and field_piece.type == game.ChessPiece.KING:
                 return MOVE_FREE
             # return blocked by ally when both pieces have the same color
-            if piece.color == field_piece.color:
+            if piece_cpy.color == field_piece.color:
                 return MOVE_BLOCKED_ON_PATH
             return MOVE_BLOCKED_ON_TARGET
         else:
             return MOVE_FREE
 
-    piece_cpy.x += direction["x"]
-    piece_cpy.y += direction["y"]
-
     if field[piece_cpy.x][piece_cpy.y] is not None:
         return MOVE_BLOCKED_ON_PATH
-    return is_move_blocked(field, piece_cpy, target_move, direction)
+    return is_move_blocked(field, piece_cpy, target_move, direction, test_check)
 
 
 def is_move_diagonal(piece, target_move):

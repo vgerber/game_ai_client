@@ -6,6 +6,7 @@ import threading
 import time
 import atexit
 import utils.room_manager as rm
+import utils.game as games
 
 
 class GameAIClient:
@@ -23,47 +24,18 @@ class GameAIClient:
     METHOD_ROLE_CHANGE = "role-change"
     METHOD_GAME_MOVE = "game-move"
 
-    GAME_GO = "go"
-    GAME_CHESS = "chess"
-
-    ROLE_WHITE = 1
-    ROLE_WHITE_STR = "white"
-
-    ROLE_BLACK = 2
-    ROLE_BLACK_STR = "black"
-
-    ROLE_SPECTATOR = 3
-    ROLE_SPECTATOR_STR = "spectator"
-
-    CMD_READY = "ready"
-    CMD_SET_DEADLINE_DUR = "set-deadline-dur"
-    CMD_SURRENDER = "surrender"
-    CMD_RESTART = "restart"
-
-    ws = None
-    wst = None
     ping_interval = None
 
     ping_timer_duration = 25
 
-    connected = False
-
-    def __init__(self, on_message):
-        self.on_message = on_message
+    def __init__(self):
         self.user = None
 
     def connect(self, url):
         atexit.register(self.disconnect)
-        self.ws = websocket.WebSocketApp(url=url)
-        self.ws.on_open = self.on_open
-        self.ws.on_error = self.on_error
-        self.ws.on_message = self.listen
-        self.wst = threading.Thread(target=self.ws.run_forever, kwargs={"sslopt": {"cert_reqs": ssl.CERT_NONE}})
-        self.wst.daemon = True
-        self.wst.start()
+        self.ws = websocket.WebSocket(sslopt={"cert_reqs": ssl.CERT_NONE})
+        self.ws.connect(url)
 
-        while not self.connected:
-            pass
         self.ping_interval = threading.Thread(target=self.ping_timer)
         self.ping_interval.daemon = True
         self.ping_interval.start()
@@ -71,13 +43,15 @@ class GameAIClient:
     def disconnect(self):
         print("Disconnect")
         self.ws.close()
-        self.connected = False
 
     def send(self, message):
         self.ws.send(message)
 
-    def listen(self, ws, message):
-        if message == "pong":
+    def receive(self):
+        message = self.ws.recv()
+        if message is None:
+            return None
+        if message == "pong" or message == "ping":
             pass
         else:
             msg_json = json.loads(message)
@@ -90,19 +64,13 @@ class GameAIClient:
                     if user.name == self.user.name:
                         self.user = user
                         break
-            self.on_message(self, message)
-
-    def on_error(self, ws, error):
-        print("Error {}".format(error))
-
-    def on_open(self, ws):
-        self.connected = True
+            return message
 
     def ping(self):
         self.send("ping")
 
     def ping_timer(self):
-        while self.connected:
+        while self.ws.connected:
             self.ping()
             time.sleep(self.ping_timer_duration)
 
@@ -124,7 +92,7 @@ class GameAIClient:
         msg["data"] = dict()
         self.send(json.dumps(msg))
 
-    def room_add(self, name, password="", game=GAME_CHESS):
+    def room_add(self, name, password="", game=games.GAME_CHESS):
         msg = dict()
         msg["method"] = self.METHOD_ROOM_ADD
         msg["data"] = dict()
