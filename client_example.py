@@ -3,11 +3,9 @@ import json
 import utils.game as game
 import utils.room_manager as room_manager
 import utils.game_as.chess as chess_as
+import utils.game_as.chess_ai as ai
 import random
 import time
-
-
-move_id = -1
 
 
 def on_room_update(connection, room):
@@ -42,16 +40,13 @@ def on_room_update(connection, room):
         # initial value is -1 because the initial count value is 0 (counter fro moves)
         if room.game.state.game_state == game.ChessState.STATE_OK and room.game.count > move_id:
             # generate field from game object (parsed by utils class)
-            field = chess_as.get_field(room.game)
+            # field = chess_as.get_field(room.game)
             # get every possible move from current field and turn (color)
-            moves = chess_as.get_valid_moves(field, room.game.turn)
-            if len(moves) > 0:
-                move = moves[random.randint(0, len(moves) - 1)][0]
-                print("{} Moves -> {}".format(len(moves), move))
-                # send move
-                connection.game_move(move)
-                # set move_id (the timestamp) for the recently submitted move
-                move_id = room.game.count
+
+            move = ai.min_max(room.game, 1)
+            print(move)
+            client.game_move(move[1])
+            move_id = room.game.count
     if room.game.state.game_state != game.ChessState.STATE_OK:
         connection.room_command(room_manager.CMD_RESTART)
 
@@ -82,10 +77,10 @@ if __name__ == "__main__":
     client = aic.GameAIClient()
     client.connect("wss://vg-development.de:8900/game")
     client.login("Bot-" + str(random.randint(0, 999999)))
-    client.room_add("BotRoom")
-    client.room_join("BotRoom")
+    client.room_add("BotRoom1")
+    client.room_join("BotRoom1")
 
-    move_done = False
+    move_id = -1
 
     while client.ws.connected:
         msg = client.receive()

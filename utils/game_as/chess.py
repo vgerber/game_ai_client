@@ -35,9 +35,13 @@ def move(field, piece, target_move, promotion_type=None):
     if validate_piece(field, piece, target_move):
         new_field[piece_cpy.x][piece_cpy.y] = None
 
+        if is_move_en_passant(new_field, piece_cpy, target_move):
+            new_field[target_move[0]][piece_cpy.y] = None
+
         piece_cpy.x = target_move[0]
         piece_cpy.y = target_move[1]
         piece_cpy.move_count += 1
+
         new_field[piece_cpy.x][piece_cpy.y] = piece_cpy
         if is_check(new_field, piece.color):
             return None
@@ -63,8 +67,10 @@ def get_valid_moves(field, color):
         for y in range(8):
             piece = field[x][y]
             if piece is not None and piece.color == color:
-                for move_x in range(8):
-                    for move_y in range(8):
+                for move_to in get_moves(piece):
+                    move_x = piece.x + move_to[0]
+                    move_y = piece.y + move_to[1]
+                    if is_move_in_bounds((move_x, move_y)):
                         state = move(field, piece, (move_x, move_y))
                         if state is not None:
                             move_str = get_move_str(piece, (move_x, move_y))
@@ -74,13 +80,10 @@ def get_valid_moves(field, color):
 
 def get_piece(field, x=None, y=None, pos=None):
     if x is None and y is None:
-        pos = get_position(pos)
-
-        for x in range(8):
-            for y in range(8):
-                piece = field[x][y]
-                if piece.x == pos[0] and piece.y == pos[1]:
-                    return piece
+        x, y = get_position(pos)
+        piece = field[x][y]
+        if piece is not None and piece.x == x and piece.y == y:
+            return piece
     else:
         for x in range(8):
             for y in range(8):
@@ -131,8 +134,10 @@ def validate_pawn(field, piece, target_move, ignore_king=False):
 
     if dx == 0:
         if dy == 1 or (dy == 2 and piece.move_count == 0):
-            return is_move_blocked(field, piece, target_move, direction, ignore_king) == MOVE_FREE
-    if dx == 1 and dy == 1:
+            return is_move_blocked(field, piece, target_move, direction) == MOVE_FREE
+    elif dx == 1 and dy == 1:
+        if is_move_en_passant(field, piece, target_move):
+            return True
         expected_result = MOVE_BLOCKED_ON_TARGET
         if ignore_king:
             expected_result = MOVE_FREE
@@ -286,6 +291,23 @@ def is_move_linear(piece, target_move):
     return (dx == 0 and dy != 0) or (dx != 0 and dy == 0)
 
 
+def is_move_en_passant(field, piece, target_move):
+    if piece.type == game.ChessPiece.PAWN:
+        dx = piece.x - target_move[0]
+        dy = piece.y - target_move[1]
+
+        if abs(dx) == 1 and abs(dy) == 1:
+            if (piece.color == game.COLOR_BLACK and dy == 1) or (piece.color == game.COLOR_WHITE and dy == -1):
+                piece_target = field[target_move[0]][piece.y]
+                # target must be an enemy pawn and the move_count must be 0
+                if piece_target is not None:
+                    if (piece_target.type == game.ChessPiece.PAWN and
+                            piece_target.move_count == 0 and
+                            piece_target.color != piece.color):
+                        return field[target_move[0]][target_move[1]] is None
+    return False
+
+
 def is_check(field, color):
     king = None
 
@@ -307,37 +329,11 @@ def is_check(field, color):
 
 
 def is_check_mate(field, color):
-    king = None
-
-    for x in range(8):
-        for y in range(8):
-            piece = field[x][y]
-            if piece is not None and color == piece.color and piece.type == game.ChessPiece.KING:
-                king = piece
-                break
-
-    if king is not None:
-        # check if king can move
-        for x in range(-1, 2):
-            for y in range(-1, 2):
-                if move(field, king, (king.x + x, king.y + y)) is not None:
-                    return False
-
-        for x in range(8):
-            for y in range(8):
-                piece = field[x][y]
-                if piece is not None and piece.color == color:
-                    for move_x in range(8):
-                        for move_y in range(8):
-                            state = move(field, piece, (move_x, move_y))
-                            if state is not None:
-                                return False
-        return True
-    return False
+    return is_check(field, color) and is_stale_mate(field, color, test_check=False)
 
 
-def is_stale_mate(field, color):
-    if not is_check(field, color):
+def is_stale_mate(field, color, test_check=True):
+    if not test_check or (test_check and not is_check(field, color)):
         king = None
         for x in range(8):
             for y in range(8):
@@ -364,3 +360,35 @@ def is_stale_mate(field, color):
         return True
     return False
 
+
+def get_moves(piece):
+    if piece.type == game.ChessPiece.PAWN:
+        if piece.color == game.COLOR_BLACK:
+            return [(0, 1), (0, 2), (1, 1), (-1, 1)]
+        if piece.color == game.COLOR_WHITE:
+            return [(0, -1), (0, -2), (1, -1), (-1, -1)]
+    if piece.type == game.ChessPiece.ROOK:
+        return get_linear_moves(max_range=7)
+    if piece.type == game.ChessPiece.KNIGHT:
+        return [(1, 2), (-1, 2), (1, -2), (-1, -2), (2, 1), (-2, 1), (2, -1), (-2, -1)]
+    if piece.type == game.ChessPiece.BISHOP:
+        return get_diagonal_moves(7)
+    if piece.type == game.ChessPiece.QUEEN:
+        return get_diagonal_moves(7) + get_linear_moves(7)
+    if piece.type == game.ChessPiece.KING:
+        return get_diagonal_moves(1) + get_linear_moves(1)
+    return []
+
+
+def get_linear_moves(max_range):
+    return [(0, i) for i in range(1, max_range+1)] + \
+           [(0, -i) for i in range(1, max_range+1)] + \
+           [(i, 0) for i in range(1, max_range+1)] + \
+           [(-i, 0) for i in range(1, max_range+1)]
+
+
+def get_diagonal_moves(max_range):
+    return [(i, i) for i in range(1, max_range+1)] + \
+           [(i, -i) for i in range(1, max_range+1)] + \
+           [(-i, i) for i in range(1, max_range+1)] + \
+           [(-i, -i) for i in range(1, max_range+1)]
